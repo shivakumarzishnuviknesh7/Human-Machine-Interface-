@@ -1,0 +1,12 @@
+docx==0.2.4
+docx2python==2.10.1
+Levenshtein~=0.25.1
+pandas~=2.2.2
+numpy==1.24.3
+pyfiglet~=1.0.2
+python-dotenv==1.0.1
+sentence-transformers==2.7.0
+torch==2.2.2
+torchvision==0.17.2
+quart-cors==0.7.0
+quart==0.19.5
