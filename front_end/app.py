@@ -1,5 +1,9 @@
+
 import streamlit as st
 import requests
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+import re
 
 def fetch_courses_by_instructor(instructor_name):
     url = "http://localhost:3000/course_by_instructor/"
@@ -36,6 +40,7 @@ def fetch_courses_by_title(title_name):
         return []
 
 
+
 st.title("Courses Search")
 
 title = st.text_input("Enter your query:")
@@ -43,8 +48,25 @@ title = st.text_input("Enter your query:")
 if title:
     courses = fetch_courses_by_title(title)
     if courses:
-        st.write("Courses matched to", title, ":")
         for course in courses:
-            st.write(course[:])  # Access the first element of each nested list
+
+            # Convert all elements in the course list to strings
+            course = [str(item) for item in course]
+
+            # Calculate TF-IDF vectors for title and course
+            tfidf_vectorizer = TfidfVectorizer()
+            tfidf_matrix = tfidf_vectorizer.fit_transform([title] + course)
+
+            # Calculate cosine similarity
+            cosine_sim = cosine_similarity(tfidf_matrix[0], tfidf_matrix[1:])
+
+            for sim in cosine_sim[0]:
+                if sim > 0.1:
+                    print("***********************************************")
+                    for i, data in enumerate(course):
+                        st.markdown(f"**Field {i + 1}:** {data}")
+                    break  # Exit the loop after finding a similar course
+                else:
+                    st.write("No similar course found.")
     else:
         st.write("No courses related to", title)
