@@ -30,3 +30,16 @@ def get_course_by_instructor(db_file, name):
         instructor.append([row[1]])
     conn.close()
     return instructor
+
+
+def get_course_general(db_file, name):
+    conn = sqlite3.connect(db_file)
+    cursor = conn.cursor()
+    query = "SELECT * FROM zqm_module_en WHERE title LIKE ?"
+    cursor.execute(query, ('%' + name + '%',))
+    records = cursor.fetchall()
+    title = []
+    for row in records:
+        title.append([row[:]])
+    conn.close()
+    return title
