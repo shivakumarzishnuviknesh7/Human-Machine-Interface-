@@ -42,4 +42,4 @@ def get_course_general(db_file, name):
     for row in records:
         title.append([row[:]])
     conn.close()
-    return title
+    return records
