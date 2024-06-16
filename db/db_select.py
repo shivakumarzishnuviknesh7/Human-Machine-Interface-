@@ -29,7 +29,7 @@ def get_course_by_instructor(db_file, name):
     for row in records:
         instructor.append([row[1]])
     conn.close()
-    return instructor
+    return records
 
 
 def get_course_general(db_file, name):
