@@ -23,6 +23,7 @@ def fetch_courses_by_instructor(instructor_name):
         response = requests.post(url, json=payload)
         response.raise_for_status()
         courses = response.json()
+        print(courses)
         return courses
     except requests.exceptions.RequestException as e:
         st.error(f"Error fetching courses: {e}")
@@ -36,6 +37,7 @@ def fetch_courses_by_title(title_name):
         response = requests.post(url, json=payload)
         response.raise_for_status()
         courses = response.json()
+        print(courses)
         return courses
     except requests.exceptions.RequestException as e:
         st.error(f"Error fetching courses: {e}")
@@ -57,9 +59,11 @@ def transform_instructor_courses(course_list):
         'requirements', 'literature', 'application', 'workload', 'credit_points',
         'exam', 'year', 'frequency', 'duration', 'course_type', 'language'
     ]
+
     transformed_courses = []
     for course in course_list:
         course_dict = dict(zip(keys, course)) if isinstance(course, list) else course
+
         if 'title' not in course_dict:
             course_dict['title'] = course_dict.get('file_path', 'Unknown Title')
         if 'instructor' not in course_dict:
@@ -139,9 +143,9 @@ def main():
                     st.write("Course Type:", course.get('course_type', "N/A"))
 
                     # Display a button to show more details
-                    if st.button("Show More Details", key=f"{course['title']}_{i}"):
+                    if st.button("Show More Details", course['title']):
                         st.write("Description:", course.get('description', "N/A"))
-                        st.write("Remarks:", course.get('remarks', "N/A"))
+                        st.write("Remarks:", course.get('language', "N/A"))
 
             except ValueError as ve:
                 st.error(f"ValueError: {ve}")
@@ -156,7 +160,7 @@ def main():
                 # Display a button to show more details
                 if st.button("Show More Details", key=f"{course['title']}"):
                     st.write("Description:", course.get('description', "N/A"))
-                    st.write("Remarks:", course.get('remarks', "N/A"))
+                    st.write("Remarks:", course.get('language', "N/A"))
     else:
         st.write("No courses found related to the search criteria.")
 
