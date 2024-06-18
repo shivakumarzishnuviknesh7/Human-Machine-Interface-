@@ -23,7 +23,7 @@ def fetch_courses_by_instructor(instructor_name):
         response = requests.post(url, json=payload)
         response.raise_for_status()
         courses = response.json()
-        print(courses)
+        #print(courses)
         return courses
     except requests.exceptions.RequestException as e:
         st.error(f"Error fetching courses: {e}")
@@ -37,7 +37,7 @@ def fetch_courses_by_title(title_name):
         response = requests.post(url, json=payload)
         response.raise_for_status()
         courses = response.json()
-        print(courses)
+        #print(courses)
         return courses
     except requests.exceptions.RequestException as e:
         st.error(f"Error fetching courses: {e}")
@@ -139,13 +139,20 @@ def main():
 
                     st.write("---")
                     st.subheader(course['title'])  # Display course title as subheader
-                    st.write("Duration:", course.get('duration', "N/A"))
-                    st.write("Course Type:", course.get('course_type', "N/A"))
+                    st.write("**Duration:**", course.get('duration', "N/A"))
+                    st.write("**Course Type:**", course.get('course_type', "N/A"))
+                    st.write("**Course Instructor:**", course.get('instructor', "N/A"))
 
                     # Display a button to show more details
                     if st.button("Show More Details", course['title']):
-                        st.write("Description:", course.get('description', "N/A"))
-                        st.write("Remarks:", course.get('language', "N/A"))
+                        st.write("**Description:**", course.get('description', "N/A").replace("\\n", "\n"))
+                        st.write("**Course Content:**", course.get('content', "N/A").replace("\\n", "\n"))
+                        st.write("**Teaching Methods:**", course.get('teaching_methods', "N/A").replace("\\n", "\n"))
+                        st.write("**Prerequisites:**", course.get('requirements', "N/A").replace("\\n", "\n"))
+                        st.write("**Workload:**", course.get('workload', "N/A").replace("\\n", "\n"))
+                        st.write("**Evaluation:**", course.get('exam', "N/A").replace("\\n", "\n"))
+                        st.write("**Credit Points:**", course.get('credit_points', "N/A").replace("\\n", "\n"))
+                        st.write("**Remarks:**", course.get('language', "N/A"))
 
             except ValueError as ve:
                 st.error(f"ValueError: {ve}")
@@ -154,13 +161,20 @@ def main():
             for course in courses:
                 st.write("---")
                 st.subheader(course['title'])  # Display course title as subheader
-                st.write("Duration:", course.get('duration', "N/A"))
-                st.write("Course Type:", course.get('course_type', "N/A"))
+                st.write("**Duration:**", course.get('duration', "N/A"))
+                st.write("**Course Type:**", course.get('course_type', "N/A"))
+                st.write("**Course Instructor:**", course.get('instructor', "N/A"))
 
                 # Display a button to show more details
                 if st.button("Show More Details", key=f"{course['title']}"):
-                    st.write("Description:", course.get('description', "N/A"))
-                    st.write("Remarks:", course.get('language', "N/A"))
+                    st.write("**Description:**", course.get('description', "N/A").replace("\\n", "\n"))
+                    st.write("**Course Content:**", course.get('content', "N/A").replace("\\n", "\n"))
+                    st.write("**Teaching Methods:**", course.get('teaching_methods', "N/A").replace("\\n", "\n"))
+                    st.write("**Prerequisites:**", course.get('requirements', "N/A").replace("\\n", "\n"))
+                    st.write("**Workload:**", course.get('workload', "N/A").replace("\\n", "\n"))
+                    st.write("**Evaluation:**", course.get('exam', "N/A").replace("\\n", "\n"))
+                    st.write("**Credit Points:**", course.get('credit_points', "N/A").replace("\\n", "\n"))
+                    st.write("**Remarks:**", course.get('language', "N/A"))
     else:
         st.write("No courses found related to the search criteria.")
 
