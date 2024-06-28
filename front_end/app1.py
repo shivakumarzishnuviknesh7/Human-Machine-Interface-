@@ -8,7 +8,7 @@ def fetch_unique_instructors():
     instructors = [
         'Prof Dr Michael Dornieden', 'Kai Hüschelrath', 'Prof. Dr. Carsten Roppel',
         'Prof. Dr. Manfred Herbert', 'Prof Dr Mareike Heinemann',
-        'Prof Dr Robert Richert', 'N.N.', 'Prof. Dr. Andreas Kammel',
+        'Prof Dr Robert Richert', 'Prof. Dr. Andreas Kammel',
         'Prof. Dr. N. Richter', 'Prof. Dr.-Ing. G. Weidner',
         'Prof Dr Peter Schuster', 'Prof. Dr. Bachmann', 'Prof Dr Wiebke Störmann',
         'Prof. Dr. S. Roth'
