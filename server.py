@@ -52,7 +52,7 @@ async def course_by_instructor():
         logger.debug('{}'.format(resp))
     return resp
 
-@app.route('/course_general/', methods=['POST'])
+@app.route('/course_genreral/', methods=['POST'])
 async def course_general():
     if request.is_json:
         data_json = await request.get_json()
