@@ -11,11 +11,6 @@ def vectorize_learning_obj(llm_name, learning_obj):
     vectors = model.encode(learning_obj)
     return vectors
 
-# Function to normalize vectors for cosine similarity
-def normalize_vectors(vectors):
-    norms = np.linalg.norm(vectors, axis=1, keepdims=True)
-    return vectors / norms
-
 # Function to store vectors in a Faiss index and save the index to a file
 def store_in_faiss(records, faiss_index_file):
     # Create directory if it doesn't exist
@@ -27,12 +22,11 @@ def store_in_faiss(records, faiss_index_file):
     llm_name = "sentence-transformers/all-MiniLM-L6-v2"
     titles = [record[0] for record in records]  # Extract titles
     vectors = vectorize_learning_obj(llm_name, titles)
-    normalized_vectors = normalize_vectors(vectors)
 
     # Save the vectors to Faiss index
-    dim = normalized_vectors.shape[1]  # Dimension of the vectors
-    index = faiss.IndexFlatIP(dim)
-    index.add(normalized_vectors)
+    dim = vectors.shape[1]  # Dimension of the vectors
+    index = faiss.IndexFlatL2(dim)
+    index.add(vectors)
 
     # Save the index to a file
     faiss.write_index(index, faiss_index_file)
@@ -57,35 +51,22 @@ def load_faiss_index(faiss_index_file):
     index = faiss.read_index(faiss_index_file)
     return index
 
-# Function to vectorize and normalize user input
+# Function to vectorize user input
 def vectorize_input(llm_name, user_input):
     model = SentenceTransformer(llm_name)
     vector = model.encode([user_input])[0]
-    normalized_vector = vector / np.linalg.norm(vector)
-    return normalized_vector
+    return vector
 
-def search_faiss_index(index, vector, records, instructor_name=None,duration=None, course_type=None,time=None, top_k=3, threshold=0.8):
-    distances, indices = index.search(np.array([vector]), top_k)
-    valid_indices = []
-    for dist, idx in zip(distances[0], indices[0]):
-        if dist >= threshold:
-            if instructor_name:
-                if records[idx][1] == instructor_name:
-                    valid_indices.append(idx)
-            elif time:
-                if records[idx][7] == time:
-                    valid_indices.append(idx)
-            elif duration:
-                if records[idx][9] == duration:
-                    valid_indices.append(idx)
-            elif course_type:
-                if records[idx][10] == course_type:
-                    valid_indices.append(idx)
-            else:
-                valid_indices.append(idx)
-    return valid_indices[:top_k]
+# Function to perform search using Faiss index with optional filtering by instructor_name
+def search_faiss_index(index, vector, records, instructor_name=None, top_k=3):
+    _, indices = index.search(np.array([vector]), top_k)
+    if instructor_name:
+        filtered_indices = [idx for idx in indices[0] if records[idx][1] == instructor_name]
+        return filtered_indices[:top_k]
+    else:
+        return indices[0][:top_k]
 
-
+# Main function to run Streamlit app
 def main():
     st.title("Learning Objectives Search Engine")
 
@@ -116,33 +97,13 @@ def main():
         if user_input:
             # Parse user input to handle faceted search
             if " && " in user_input:
-                main_query, facet = map(str.strip, user_input.split(" && "))
-                if "Prof Dr" in facet:  # Assuming "Prof Dr" indicates an instructor's name
-                    instructor_name = facet
-                    course_type = None
-                    duration = None
-                    time=None
-                elif "One" in facet:
-                    instructor_name = None
-                    course_type = None
-                    duration = facet
-                    time = None
-                elif "academic " in facet:
-                    instructor_name = None
-                    course_type = None
-                    duration = None
-                    time = facet
-                else:
-                    instructor_name = None
-                    course_type = facet
-                    duration = None
-                    time = None
+                main_query, instructor_name = map(str.strip, user_input.split(" && "))
 
                 # Vectorize user input
                 user_vector = vectorize_input("sentence-transformers/all-MiniLM-L6-v2", main_query)
 
                 # Perform search with faceted filtering
-                results = search_faiss_index(index, user_vector, records, instructor_name=instructor_name, course_type=course_type,duration=duration,time=time, top_k=2)
+                results = search_faiss_index(index, user_vector, records, instructor_name=instructor_name)
 
             else:
                 main_query = user_input.strip()
@@ -151,12 +112,13 @@ def main():
                 user_vector = vectorize_input("sentence-transformers/all-MiniLM-L6-v2", main_query)
 
                 # Perform search without faceted filtering
-                results = search_faiss_index(index, user_vector, records, top_k=2)
+                results = search_faiss_index(index, user_vector, records)
 
             st.write(f"Number of results found: {len(results)}")
             st.subheader("Matching Learning Objectives:")
-            for idx in results:
-                title, instructor, learning_obj, course_contents, prerequisites, credits, evaluation, time, frequency, duration, course_type = records[idx]
+            for idx in results[:3]:
+                title, instructor, learning_obj, course_contents, prerequisites, credits, evaluation, time, frequency, duration, course_type = \
+                records[idx]
                 st.write(f"**Title**: {title}")
                 st.write(f"**Instructor**: {instructor}")
                 st.write(f"**Learning Objective**: {learning_obj}")
@@ -170,6 +132,7 @@ def main():
                 st.write(f"**Course Type**: {course_type}")
                 st.write("---")
 
+
     except sqlite3.Error as e:
         st.error(f"SQLite error: {e}")
     except Exception as e:
@@ -177,4 +140,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

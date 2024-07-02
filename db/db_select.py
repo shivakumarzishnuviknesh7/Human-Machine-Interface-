@@ -1,5 +1,7 @@
 import sqlite3
 
+
+
 def get_learning_obj_en(db_file):
     """
     :param db_file: database file location

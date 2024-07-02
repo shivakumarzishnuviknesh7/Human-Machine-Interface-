@@ -64,27 +64,25 @@ def vectorize_input(llm_name, user_input):
     normalized_vector = vector / np.linalg.norm(vector)
     return normalized_vector
 
-def search_faiss_index(index, vector, records, instructor_name=None,duration=None, course_type=None,time=None, top_k=3, threshold=0.8):
-    distances, indices = index.search(np.array([vector]), top_k)
+# Function to perform search using Faiss index with optional filtering by instructor_name, duration, course type, and time
+def search_faiss_index(index, vector, records, instructor_name=None, duration=None, course_type=None, time=None, top_k=3):
     valid_indices = []
-    for dist, idx in zip(distances[0], indices[0]):
-        if dist >= threshold:
-            if instructor_name:
-                if records[idx][1] == instructor_name:
-                    valid_indices.append(idx)
-            elif time:
-                if records[idx][7] == time:
-                    valid_indices.append(idx)
-            elif duration:
-                if records[idx][9] == duration:
-                    valid_indices.append(idx)
-            elif course_type:
-                if records[idx][10] == course_type:
-                    valid_indices.append(idx)
-            else:
-                valid_indices.append(idx)
-    return valid_indices[:top_k]
 
+    for idx, record in enumerate(records):
+        match = True
+        if instructor_name and record[1] != instructor_name:
+            match = False
+        if duration and record[9] != duration:
+            match = False
+        if course_type and record[10] != course_type:
+            match = False
+        if time and record[7] != time:
+            match = False
+
+        if match:
+            valid_indices.append(idx)
+
+    return valid_indices[:top_k]
 
 def main():
     st.title("Learning Objectives Search Engine")
@@ -142,7 +140,7 @@ def main():
                 user_vector = vectorize_input("sentence-transformers/all-MiniLM-L6-v2", main_query)
 
                 # Perform search with faceted filtering
-                results = search_faiss_index(index, user_vector, records, instructor_name=instructor_name, course_type=course_type,duration=duration,time=time, top_k=2)
+                results = search_faiss_index(index, user_vector, records, instructor_name=instructor_name, course_type=course_type,duration=duration,time=time, top_k=3)
 
             else:
                 main_query = user_input.strip()
@@ -151,11 +149,11 @@ def main():
                 user_vector = vectorize_input("sentence-transformers/all-MiniLM-L6-v2", main_query)
 
                 # Perform search without faceted filtering
-                results = search_faiss_index(index, user_vector, records, top_k=2)
+                results = search_faiss_index(index, user_vector, records, top_k=3)
 
             st.write(f"Number of results found: {len(results)}")
             st.subheader("Matching Learning Objectives:")
-            for idx in results:
+            for idx in results[:3]:
                 title, instructor, learning_obj, course_contents, prerequisites, credits, evaluation, time, frequency, duration, course_type = records[idx]
                 st.write(f"**Title**: {title}")
                 st.write(f"**Instructor**: {instructor}")
@@ -177,4 +175,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
