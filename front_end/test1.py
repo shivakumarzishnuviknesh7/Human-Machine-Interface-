@@ -158,17 +158,17 @@ def main():
             for idx in results[:3]:
                 title, instructor, learning_obj, course_contents, prerequisites, credits, evaluation, time, frequency, duration, course_type = \
                     records[idx]
-                st.write(f"**Title**: {title}")
-                st.write(f"**Instructor**: {instructor}")
-                st.write(f"**Learning Objective**: {learning_obj}")
-                st.write(f"**Course Contents**: {course_contents}")
-                st.write(f"**Prerequisites**: {prerequisites}")
-                st.write(f"**Credits**: {credits}")
-                st.write(f"**Evaluation**: {evaluation}")
-                st.write(f"**Time**: {time}")
-                st.write(f"**Frequency**: {frequency}")
-                st.write(f"**Duration**: {duration}")
-                st.write(f"**Course Type**: {course_type}")
+                st.write(f"**Title**: {title}".replace("\\n", "\n").replace("\\t", "\t"))
+                st.write(f"**Instructor**: {instructor}".replace("\\n", "\n").replace("\\t", "\t"))
+                st.write(f"**Learning Objective**: {learning_obj}".replace("\\n", "\n").replace("\\t", "\t"))
+                st.write(f"**Course Contents**: {course_contents}".replace("\\n", "\n").replace("\\t", "\t"))
+                st.write(f"**Prerequisites**: {prerequisites}".replace("\\n", "\n").replace("\\t", "\t"))
+                st.write(f"**Credits**: {credits}".replace("\\n", "\n").replace("\\t", "\t"))
+                st.write(f"**Evaluation**: {evaluation}".replace("\\n", "\n").replace("\\t", "\t"))
+                st.write(f"**Time**: {time}".replace("\\n", "\n").replace("\\t", "\t"))
+                st.write(f"**Frequency**: {frequency}".replace("\\n", "\n").replace("\\t", "\t"))
+                st.write(f"**Duration**: {duration}".replace("\\n", "\n").replace("\\t", "\t"))
+                st.write(f"**Course Type**: {course_type}".replace("\\n", "\n").replace("\\t", "\t"))
                 st.write("---")
 
     except sqlite3.Error as e:
