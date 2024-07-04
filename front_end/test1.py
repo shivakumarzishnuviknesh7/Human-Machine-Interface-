@@ -6,7 +6,7 @@ import streamlit as st
 from sentence_transformers import SentenceTransformer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from fuzzywuzzy import fuzz
+from fuzzywuzzy import fuzz, process
 
 # Initialize the TF-IDF vectorizer globally
 tfidf_vectorizer = TfidfVectorizer()
@@ -64,15 +64,9 @@ def vectorize_input(llm_name, user_input):
     return vector
 
 # Function to correct misspellings using fuzzy matching
-def correct_spelling(input_text, valid_values, threshold=80):
-    best_match = None
-    highest_score = threshold
-    for value in valid_values:
-        score = fuzz.ratio(input_text, value)
-        if score > highest_score:
-            best_match = value
-            highest_score = score
-    return best_match if best_match else input_text
+def correct_spelling(input_text, valid_values, threshold=70):
+    best_match, score = process.extractOne(input_text, valid_values, scorer=fuzz.partial_ratio)
+    return best_match if score >= threshold else input_text
 
 # Function to recommend input values based on TF-IDF similarity
 def recommend_input(user_input, valid_values):
@@ -90,13 +84,18 @@ def search_faiss_index(index, vector, records, instructor_name=None, course_type
     filtered_indices = []
     for idx in indices[0]:
         record = records[idx]
+        print(f"Checking record: {record}")  # Debug statement
         if instructor_name and record[1] != instructor_name:
+            print(f"Skipping due to instructor: {record[1]} != {instructor_name}")  # Debug statement
             continue
         if course_type and record[10] != course_type:
+            print(f"Skipping due to course type: {record[10]} != {course_type}")  # Debug statement
             continue
         if duration and record[9] != duration:
+            print(f"Skipping due to duration: {record[9]} != {duration}")  # Debug statement
             continue
         if time and record[7] != time:
+            print(f"Skipping due to time: {record[7]} != {time}")  # Debug statement
             continue
         filtered_indices.append(idx)
     return filtered_indices[:top_k]
@@ -147,39 +146,29 @@ def main():
             st.write(f"Recommended Times: {', '.join(recommended_times)}")
 
             # Parse user input to handle faceted search
-            if " && " in user_input:
-                main_query, facet = map(str.strip, user_input.split(" && "))
-                instructor_name, course_type, duration, time = None, None, None, None
+            facets = user_input.split(" && ")
+            main_query = facets[0].strip()
+            facet_values = facets[1:]
+
+            instructor_name, course_type, duration, time = None, None, None, None
+
+            for facet in facet_values:
+                facet = facet.strip()
                 if "Prof. Dr." in facet:  # Assuming "Prof Dr" indicates an instructor's name
-                    instructor_name = facet
-                elif "One" in facet:
-                    duration = facet
-                elif "academic " in facet:
-                    time = facet
+                    instructor_name = correct_spelling(facet, instructors)
+                elif "One" in facet or "one" in facet:
+                    duration = correct_spelling(facet, durations)
+                elif "semester" in facet:
+                    time = correct_spelling(facet, times)
                 else:
-                    course_type = facet
+                    course_type = correct_spelling(facet, course_types)
 
-                # Correct spelling if necessary
-                instructor_name = correct_spelling(instructor_name, instructors) if instructor_name else None
-                course_type = correct_spelling(course_type, course_types) if course_type else None
-                duration = correct_spelling(duration, durations) if duration else None
-                time = correct_spelling(time, times) if time else None
+            # Vectorize user input
+            user_vector = vectorize_input("sentence-transformers/all-MiniLM-L6-v2", main_query)
 
-                # Vectorize user input
-                user_vector = vectorize_input("sentence-transformers/all-MiniLM-L6-v2", main_query)
-
-                # Perform search with faceted filtering
-                results = search_faiss_index(index, user_vector, records, instructor_name=instructor_name,
-                                             course_type=course_type, duration=duration, time=time, top_k=3)
-
-            else:
-                main_query = user_input.strip()
-
-                # Vectorize user input
-                user_vector = vectorize_input("sentence-transformers/all-MiniLM-L6-v2", main_query)
-
-                # Perform search without faceted filtering
-                results = search_faiss_index(index, user_vector, records)
+            # Perform search with faceted filtering
+            results = search_faiss_index(index, user_vector, records, instructor_name=instructor_name,
+                                         course_type=course_type, duration=duration, time=time, top_k=3)
 
             if not results:
                 st.write("No matching results found.")
