@@ -7,11 +7,22 @@ from sentence_transformers import SentenceTransformer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from fuzzywuzzy import fuzz, process
+from cachetools import cached, TTLCache
+from datetime import datetime
+import logging
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Initialize the TF-IDF vectorizer globally
 tfidf_vectorizer = TfidfVectorizer()
 
+# Cache for frequently accessed data
+cache = TTLCache(maxsize=100, ttl=300)
+
 # Function to vectorize learning objectives using a Sentence Transformer model
+@cached(cache)
 def vectorize_learning_obj(llm_name, learning_obj):
     model = SentenceTransformer(llm_name)
     vectors = model.encode(learning_obj)
@@ -19,26 +30,33 @@ def vectorize_learning_obj(llm_name, learning_obj):
 
 # Function to store vectors in a Faiss index and save the index to a file
 def store_in_faiss(records, faiss_index_file):
-    # Create directory if it doesn't exist
-    faiss_index_dir = os.path.dirname(faiss_index_file)
-    if not os.path.exists(faiss_index_dir):
-        os.makedirs(faiss_index_dir)
+    try:
+        # Create directory if it doesn't exist
+        faiss_index_dir = os.path.dirname(faiss_index_file)
+        if not os.path.exists(faiss_index_dir):
+            os.makedirs(faiss_index_dir)
 
-    # Vectorize only the title field for Faiss index
-    llm_name = "sentence-transformers/all-MiniLM-L6-v2"
-    titles = [record[0] for record in records]  # Extract titles
-    vectors = vectorize_learning_obj(llm_name, titles)
+        # Vectorize only the title field for Faiss index
+        llm_name = "sentence-transformers/all-MiniLM-L6-v2"
+        titles = [record[0] for record in records]  # Extract titles
+        vectors = vectorize_learning_obj(llm_name, titles)
 
-    # Save the vectors to Faiss index
-    dim = vectors.shape[1]  # Dimension of the vectors
-    index = faiss.IndexFlatL2(dim)
-    index.add(vectors)
+        # Save the vectors to Faiss index
+        dim = vectors.shape[1]  # Dimension of the vectors
+        index = faiss.IndexFlatL2(dim)
+        index.add(vectors)
 
-    # Save the index to a file
-    faiss.write_index(index, faiss_index_file)
-    st.write(f"Vectors stored in Faiss index and saved to {faiss_index_file}")
+        # Save the index to a file
+        faiss.write_index(index, faiss_index_file)
+        logger.info(f"Vectors stored in Faiss index and saved to {faiss_index_file}")
+        st.write(f"Vectors stored in Faiss index and saved to {faiss_index_file}")
+
+    except Exception as e:
+        logger.error(f"Error storing vectors in Faiss index: {e}")
+        st.error(f"Error storing vectors in Faiss index: {e}")
 
 # Function to fetch learning objectives from SQLite database
+@cached(cache)
 def get_learning_obj_en(db_file):
     try:
         conn = sqlite3.connect(db_file)
@@ -49,15 +67,21 @@ def get_learning_obj_en(db_file):
         conn.close()
         return records
     except sqlite3.Error as e:
+        logger.error(f"SQLite error: {e}")
         st.error(f"SQLite error: {e}")
         return []
 
 # Function to load Faiss index
 def load_faiss_index(faiss_index_file):
-    index = faiss.read_index(faiss_index_file)
-    return index
+    try:
+        index = faiss.read_index(faiss_index_file)
+        return index
+    except Exception as e:
+        logger.error(f"Error loading Faiss index: {e}")
+        st.error(f"Error loading Faiss index: {e}")
 
 # Function to vectorize user input
+@cached(cache)
 def vectorize_input(llm_name, user_input):
     model = SentenceTransformer(llm_name)
     vector = model.encode([user_input])[0]
@@ -84,18 +108,13 @@ def search_faiss_index(index, vector, records, instructor_name=None, course_type
     filtered_indices = []
     for idx in indices[0]:
         record = records[idx]
-        print(f"Checking record: {record}")  # Debug statement
-        if instructor_name and record[1] != instructor_name:
-            print(f"Skipping due to instructor: {record[1]} != {instructor_name}")  # Debug statement
+        if instructor_name and instructor_name not in record[1]:
             continue
-        if course_type and record[10] != course_type:
-            print(f"Skipping due to course type: {record[10]} != {course_type}")  # Debug statement
+        if course_type and course_type not in record[10]:
             continue
-        if duration and record[9] != duration:
-            print(f"Skipping due to duration: {record[9]} != {duration}")  # Debug statement
+        if duration and duration not in record[9]:
             continue
-        if time and record[7] != time:
-            print(f"Skipping due to time: {record[7]} != {time}")  # Debug statement
+        if time and time not in record[7]:
             continue
         filtered_indices.append(idx)
     return filtered_indices[:top_k]
@@ -154,11 +173,11 @@ def main():
 
             for facet in facet_values:
                 facet = facet.strip()
-                if "Prof. Dr." in facet:  # Assuming "Prof Dr" indicates an instructor's name
+                if "instructor" in facet:
                     instructor_name = correct_spelling(facet, instructors)
-                elif "One" in facet or "one" in facet:
+                elif "duration" in facet:
                     duration = correct_spelling(facet, durations)
-                elif "semester" in facet:
+                elif "time" in facet:
                     time = correct_spelling(facet, times)
                 else:
                     course_type = correct_spelling(facet, course_types)
@@ -194,6 +213,7 @@ def main():
         st.error(f"SQLite error: {e}")
     except Exception as e:
         st.error(f"An error occurred: {e}")
+        logger.error(f"An error occurred: {e}")
 
 if __name__ == "__main__":
     main()
