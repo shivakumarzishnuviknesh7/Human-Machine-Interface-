@@ -19,8 +19,8 @@ This project implements a faceted search application using Python. The applicati
 Clone the project from the GitHub repository:
 
 ```bash
-git clone https://github.com/yourusername/faceted-search-project.git
-cd faceted-search-project
+git clone https://github.com/shivakumarzishnuviknesh7/Human-Machine-Interface-:master.git
+cd Human-Machine-Interface
 ```
 
 ### Step 2: Setup Virtual Environment
