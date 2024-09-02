@@ -76,7 +76,7 @@ Once the server and the Streamlit app are running, you can access the faceted se
 
 ## Contributing
 
-Feel free to fork the repository and submit pull requests. For major changes, please open an issue first to discuss what you would like to change.
+Feel free to fork the repository and submit pull requests.  For major changes, please open an issue first to discuss what you would like to change.
 
 ## License
 
